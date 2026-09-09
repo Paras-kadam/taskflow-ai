@@ -7,7 +7,8 @@
     "dev": "ts-node-dev --respawn src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "test:audit": "ts-node-dev --transpile-only src/tests/e2e-audit.ts"
+    "test:audit": "ts-node-dev --transpile-only src/tests/e2e-audit.ts",
+    "seed": "ts-node src/scripts/seed.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
