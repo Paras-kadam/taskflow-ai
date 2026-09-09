@@ -1,4 +1,5 @@
 import express, { Express } from 'express';
+import mongoose from 'mongoose';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -20,6 +21,9 @@ import { apiLimiter } from './middleware/rateLimiter';
 
 const app: Express = express();
 
+// Configure trust proxy for Render / reverse proxies (1 = trust first proxy hop)
+app.set('trust proxy', 1);
+
 connectDB();
 
 app.use(express.json());
@@ -31,6 +35,7 @@ app.use(helmet());
 // Allowed origins for CORS (supports local, configured CLIENT_URL, comma-separated lists, and Vercel domains)
 const allowedOrigins = [
   config.CLIENT_URL,
+  'https://taskflow-ai-klwf.vercel.app',
   'http://localhost:5173',
   'http://localhost:3000',
   'http://localhost:5000',
@@ -63,8 +68,14 @@ app.use(
 
 // Production Health Check (unthrottled for Render health checks and uptime monitoring)
 app.get('/health', (_req, res) => {
-  res.status(200).json({
-    status: 'ok',
+  const dbState = mongoose.connection.readyState;
+  // 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
+  const isHealthy = dbState === 1;
+  const dbStatus = dbState === 1 ? 'connected' : dbState === 2 ? 'connecting' : 'disconnected';
+
+  res.status(isHealthy ? 200 : 503).json({
+    status: isHealthy ? 'ok' : 'degraded',
+    database: dbStatus,
     timestamp: new Date().toISOString(),
     uptime: Math.floor(process.uptime()),
     env: config.NODE_ENV,
